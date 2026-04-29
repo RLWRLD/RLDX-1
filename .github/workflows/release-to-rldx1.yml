@@ -42,7 +42,7 @@ jobs:
           fetch-depth: 1
 
       - name: Load RLDX-1 deploy key into ssh-agent
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.RLDX1_DEPLOY_KEY }}
 
