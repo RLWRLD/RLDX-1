@@ -56,7 +56,7 @@ dependencies = [
     "einops==0.8.1",
     "gymnasium==1.2.2",
     "matplotlib==3.10.1",
-    "numpy==1.26.4",
+    "numpy==2.2.6",
     "omegaconf==2.3.0",
     "scipy==1.15.3",
     "torchcodec==0.4.0",
@@ -116,7 +116,7 @@ where = ["."]
 include = ["rldx*"]
 
 [tool.uv.extra-build-dependencies]
-flash-attn = ["torch==2.7.0", "numpy==1.26.4"]
+flash-attn = ["torch==2.7.0", "numpy==2.2.6"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
