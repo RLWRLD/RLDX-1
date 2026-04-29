@@ -1,0 +1,77 @@
+# Prompts: to be removed
+I have three subfolders in the object folder: lightwheel, objaverse, and sketchfab. Each folder contains a collection of mesh and texture assets. I’d like to properly include license information for each asset without modifying the original repositories, as I plan to open source them. Could you help me draft a complete LICENSE file?
+
+Objaverse assets
+License: The use of the dataset as a whole is licensed under the ODC-By v1.0 license. Individual objects in Objaverse are licensed as Creative Commons distributable objects, under the one of the following licenses. Note the number here is the size of full set of Objaverse assets but we only include a small portion:
+
+CC-BY 4.0 – 721K objects
+
+CC-BY-NC 4.0 – 25K objects
+
+CC-BY-NC-SA 4.0 – 52K objects
+
+CC-BY-SA 4.0 – 16K objects
+
+CC0 1.0 – 3.5K objects
+The license for each object is included in the metadata.
+
+Lightwheel assets
+These are owned by us and are licensed under CC-BY 4.0.
+
+Sketchfab assets
+For Sketchfab, most license are under Creative Commons Attribution-NonCommercial, Creative Commons Attribution, or unknown. For each individual license info, we can check ASSETS_ATTRIBUTIONS.md under the same folder
+
+---
+# LICENSE
+
+This repository includes 3D assets from the following sources: **Lightwheel**, **Objaverse**, and **Sketchfab**. The licensing terms for each set of assets are listed below. Please review individual asset licenses where applicable.
+
+---
+
+## 📁 `lightwheel/`
+
+All assets in the `lightwheel` folder are owned by us and licensed under the [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/) license.
+
+You are free to:
+- Share — copy and redistribute the material in any medium or format
+- Adapt — remix, transform, and build upon the material for any purpose, even commercially
+
+**Attribution is required.** Please credit the original authors where applicable.
+
+---
+
+## 📁 `objaverse/`
+
+Assets in the `objaverse` folder are sourced from the [Objaverse dataset](https://objaverse.allenai.org/), which is licensed as follows:
+
+- The **dataset as a whole** is licensed under the [Open Data Commons Attribution License (ODC-By) v1.0](https://opendatacommons.org/licenses/by/1-0/).
+- **Individual assets** are distributed under various Creative Commons licenses:
+  - CC-BY 4.0 – 721K objects
+  - CC-BY-NC 4.0 – 25K objects
+  - CC-BY-NC-SA 4.0 – 52K objects
+  - CC-BY-SA 4.0 – 16K objects
+  - CC0 1.0 – 3.5K objects
+
+> ⚠️ We include only a small portion of the full Objaverse dataset.  
+> 📎 The license for each object is specified in its metadata.
+
+Please consult the original [Objaverse documentation](https://github.com/allenai/objaverse) for more information.
+
+---
+
+## 📁 `sketchfab/`
+
+Assets in the `sketchfab` folder originate from [Sketchfab](https://sketchfab.com/), and may be licensed under:
+
+- [Creative Commons Attribution (CC BY)](https://creativecommons.org/licenses/by/4.0/)
+- [Creative Commons Attribution-NonCommercial (CC BY-NC)](https://creativecommons.org/licenses/by-nc/4.0/)
+
+For detailed attribution and licensing of individual assets, see `sketchfab/ASSETS_ATTRIBUTIONS.md`.
+
+---
+
+## Disclaimer
+
+We have made efforts to retain the original license information for all third-party assets. If you are a rights holder and believe any attribution or usage is incorrect or inappropriate, please contact us.
+
+

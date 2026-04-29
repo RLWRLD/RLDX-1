@@ -1,0 +1,45 @@
+--- a/robocasa/environments/tabletop/tabletop_24dc.py
++++ b/robocasa/environments/tabletop/tabletop_24dc.py
+@@ -2,6 +2,7 @@
+ import numpy as np
+ from copy import deepcopy
+ from itertools import combinations, chain
++import zlib
+
+ import robocasa.utils.object_utils as OU
+ from robocasa.environments.tabletop.tabletop_pnp import TabletopPnP
+@@ -267,8 +268,8 @@ def get_excluded_obj_cats(obj_cats: List[str]) -> List[str]:
+         if cats:
+             all_obj_cats.extend(cats)
+
+-    # Remove duplicates and exclude val_obj_cats
+-    all_obj_cats = list(set(all_obj_cats))
++    # Remove duplicates (deterministic order for reproducibility across processes)
++    all_obj_cats = sorted(set(all_obj_cats))
+     return [cat for cat in all_obj_cats if cat not in obj_cats]
+
+
+@@ -739,7 +740,10 @@ def generate_task_classes(
+         if postfix:
+             class_name += postfix
+
+-        task_seed = hash(class_name) & (2**32 - 1)
++        # NOTE: Python built-in hash() is randomized per-process by default (PYTHONHASHSEED),
++        # which breaks determinism when envs are spawned in multiple processes.
++        # Use a stable hash to generate a deterministic per-task seed.
++        task_seed = zlib.crc32(class_name.encode("utf-8")) & 0xFFFFFFFF
+
+         distractor_cfg = construct_distractor_obj_cfgs(
+             included_configs=distractor_configs[(source_container, target_container)]
+@@ -755,8 +759,9 @@ def generate_task_classes(
+             source_container,
+             target_container,
+             all_obj_cats=obj_cats,
+-            all_source_containers=list(source_containers_set),
+-            all_target_containers=list(target_containers_set),
++            # Deterministic order (avoid set-order dependence across processes)
++            all_source_containers=sorted(source_containers_set),
++            all_target_containers=sorted(target_containers_set),
+             distractor_cfg=distractor_cfg,
+             obj_instance_split=obj_instance_split,
+             distractor_obj_cats=distractor_obj_cats,

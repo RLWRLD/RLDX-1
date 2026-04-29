@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main, refactoring-for-release]
+  pull_request:
+    branches: [main, refactoring-for-release]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install ruff
+        run: uv tool install ruff
+
+      - name: Ruff check (rldx/)
+        run: uv tool run ruff check rldx/
+
+      - name: Ruff format --check (rldx/)
+        run: uv tool run ruff format --check rldx/
+
+  test:
+    name: Pytest (CPU subset)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.10
+        run: uv python install 3.10
+
+      # ``flash-attn`` is a required core dep but ships only CUDA wheels;
+      # building it from source on the CPU runner would need NVCC + minutes.
+      # Skip its install here — the test scope below does not import the
+      # flash-attn extension. RTX 5090 / Blackwell builds use the pixi env.
+      - name: uv sync (no flash-attn)
+        run: uv sync --extra dev --extra eval --no-install-package flash-attn
+
+      # ``--no-sync`` keeps the flash-attn-skip choice from the previous
+      # step from being re-resolved at test time.
+      - name: pytest (clean CPU subset)
+        run: |
+          uv run --no-sync pytest \
+            tests/peft \
+            tests/license \
+            tests/issue_22 \
+            tests/issue_22_rtc_dispatch \
+            -m "not gpu and not slow" \
+            --tb=short \
+            --timeout=900 \
+            -q

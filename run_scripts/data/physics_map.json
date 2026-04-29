@@ -1,0 +1,20 @@
+{
+  "dust_clean_up": "--no-tactile",
+  "dust_peg_insert": "--no-tactile",
+  "fineact_doll_move": "--no-tactile",
+  "franka_generalization": "--no-tactile",
+  "hamlet_coverNstack_v2": "--no-tactile",
+  "hamlet_cover_pickNplace_twice_stack": "--no-tactile",
+  "hamlet_pickNplace_three_times": "--no-tactile",
+  "hamlet_pickNplace_twice": "",
+  "hamlet_swap_cubes": "",
+  "pick_original": "--no-tactile",
+  "pnp_original": "--no-tactile",
+  "pnp_twice_original": "",
+  "rldx_old_check_n_move": "--no-tactile",
+  "rldx_old_pick_n_place_twice": "--no-tactile",
+  "rldx_old_swap_cubes": "--no-tactile",
+  "rldx_swap_cubes": "",
+  "rscl_pnp": "",
+  "tactile_moss": ""
+}

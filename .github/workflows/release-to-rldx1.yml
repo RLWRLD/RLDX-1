@@ -1,0 +1,63 @@
+name: Release to RLDX-1
+
+# Auto-publishes a clean release of RLWRLD/RLDX (refactoring-for-release branch)
+# to rlwrld/RLDX-1 (main branch) as a single squashed "RLDX-1 Release" commit.
+#
+# REQUIRED SECRET (set in repo Settings -> Secrets and variables -> Actions):
+#   RLDX1_DEPLOY_KEY  — SSH private key whose public key is registered as a
+#                       *write-enabled* deploy key on rlwrld/RLDX-1.
+#                       Generate: ssh-keygen -t ed25519 -f rldx1_deploy -N ""
+#                         -> add rldx1_deploy.pub to rlwrld/RLDX-1 deploy keys (allow write)
+#                         -> paste rldx1_deploy private key into this secret
+#
+# Source repo is cloned via HTTPS using the workflow's built-in GITHUB_TOKEN,
+# so no extra secret is needed for the source side.
+#
+# Trigger: manual only (Actions tab -> "Release to RLDX-1" -> Run workflow).
+# Auto-trigger on push is intentionally disabled so releases stay deliberate.
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: "Source branch to release from"
+        required: true
+        default: refactoring-for-release
+
+# Serialize releases so two manual runs can't race on the force-push.
+concurrency:
+  group: release-to-rldx1
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish ${{ inputs.source_branch }} -> rlwrld/RLDX-1 main
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout (for the release script)
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Load RLDX-1 deploy key into ssh-agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.RLDX1_DEPLOY_KEY }}
+
+      - name: Trust github.com host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Run release script
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_BRANCH: ${{ inputs.source_branch }}
+        run: |
+          bash scripts/release_to_rldx1.sh \
+            --source-remote "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" \
+            --source-branch "${SOURCE_BRANCH}" \
+            --yes
