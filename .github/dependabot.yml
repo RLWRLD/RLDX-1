@@ -1,0 +1,45 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 5
+    labels:
+      - "area:packaging"
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      torch-stack:
+        patterns:
+          - "torch"
+          - "torchvision"
+          - "torchcodec"
+      transformers-stack:
+        patterns:
+          - "transformers"
+          - "accelerate"
+          - "peft"
+          - "diffusers"
+          - "huggingface-hub"
+          - "safetensors"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 3
+    labels:
+      - "area:ci"
+      - "dependencies"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"

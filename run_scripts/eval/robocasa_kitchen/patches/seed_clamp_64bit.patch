@@ -1,0 +1,16 @@
+diff --git a/robocasa/utils/gym_utils/gymnasium_basic.py b/robocasa/utils/gym_utils/gymnasium_basic.py
+index c3c200c7..239f7a3d 100755
+--- a/robocasa/utils/gym_utils/gymnasium_basic.py
++++ b/robocasa/utils/gym_utils/gymnasium_basic.py
+@@ -253,6 +253,11 @@ class RoboCasaEnv(gym.Env):
+         return raw_obs
+ 
+     def reset(self, seed=None, options=None):
++        # gymnasium 0.29's SyncVectorEnv may forward 64-bit seeds; numpy's
++        # legacy seeding rejects values outside [0, 2**32-1]. Clamp to keep
++        # the reset deterministic without breaking the call.
++        if seed is not None:
++            seed = int(seed) % (2**32)
+         np.random.seed(seed)
+         raw_obs = self.env.reset()
+         # return obs

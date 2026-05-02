@@ -1,0 +1,246 @@
+# pixi environments for RTX 5090 / Blackwell (sm_120) builds.
+#
+# Two environments are provided:
+#
+#   ``rldx``      — training-stable. CUDA 12.8 + torch 2.8.0+cu128 +
+#                   flash-attn source-built for sm_120. Use for any
+#                   training, finetune, eval, or rollout that does NOT
+#                   need the inference-acceleration suite.
+#
+#   ``inference`` — accelerated inference. CUDA 13.0 + torch 2.10.0+cu130 +
+#                   flash-attn source-built for sm_120. Required by
+#                   ``rldx/inference/`` (paths A/B/C/D — torch.compile /
+#                   CUDAGraph / Triton kernel chains). The Inductor
+#                   PTX/CUBIN generation paths target sm_120 natively
+#                   only on the cu130 toolchain, so this env cannot
+#                   share the cu128 toolkit with ``rldx``.
+#
+# flash-attn ships no sm_120 wheel, so each env source-builds flash-attn
+# against its own torch / cuda-toolkit (see the per-feature
+# ``install-flash-attn`` task).  flash-attn uses its own arch selector
+# ``FLASH_ATTN_CUDA_ARCHS`` (not ``TORCH_CUDA_ARCH_LIST``) — the task
+# pins it to ``"120"`` so we don't waste 75 % of the build time on
+# sm_80 / sm_90 / sm_100 kernels we'll never run.  The two envs install
+# into separate ``.pixi/envs/{rldx,inference}`` directories and do not
+# share build artifacts.
+#
+# The uv path (root pyproject.toml) stays canonical for SM_80/SM_90.
+# See ``docs/installation.md`` for which path to pick.
+
+[workspace]
+channels = ["nvidia", "conda-forge"]
+platforms = ["linux-64"]
+
+# Workspace-level system requirement is the minimum across all features
+# (rldx ships on CUDA 12.8). The ``inference`` feature raises this to
+# CUDA 13 in its own ``[feature.inference.system-requirements]`` block
+# below — only that env requires a 13+ host driver.
+[system-requirements]
+cuda = "12"
+
+[dependencies]
+python = "3.10.*"
+pip = "*"
+
+[pypi-dependencies]
+pytz = "*"
+python-dateutil = "*"
+tqdm = ">=4.66"
+filelock = "*"
+
+[environments]
+rldx = ["rldx"]
+inference = ["inference"]
+
+[feature.rldx.dependencies]
+# CUDA 12.8 toolkit is the build-time dependency for flash-attn's NVCC
+# compile step. nvidia channel ships matching nvcc + headers.
+cuda-toolkit = "12.8.*"
+
+[feature.rldx.pypi-options]
+# Blackwell wheels for torch live on the cu128 index, not the default PyPI.
+extra-index-urls = ["https://download.pytorch.org/whl/cu128"]
+index-strategy = "unsafe-best-match"
+
+[feature.rldx.pypi-dependencies]
+# Mirrors ``[project.dependencies]`` in pyproject.toml. Versions match the
+# uv-managed environment except torch / torchvision / torchcodec which are
+# bumped to the cu128 line for Blackwell. Keep this list synced with
+# pyproject.toml on every dependency change.
+torch = { version = "==2.8.0", index = "https://download.pytorch.org/whl/cu128" }
+torchvision = { version = "==0.23.0", index = "https://download.pytorch.org/whl/cu128" }
+torchcodec = "==0.7.0"
+transformers = "==4.57.0"
+peft = "==0.17.1"
+diffusers = "==0.35.1"
+einops = "==0.8.1"
+numpy = "==1.26.4"
+scipy = "==1.15.3"
+omegaconf = "==2.3.0"
+termcolor = "==3.2.0"
+albumentations = "==1.4.18"
+dm-tree = "==0.1.8"
+pyzmq = "==27.0.1"
+msgpack = "==1.1.0"
+msgpack-numpy = "==0.4.8"
+tyro = "==0.9.17"
+pandas = "==2.2.3"
+av = "==15.0.0"
+click = "==8.1.8"
+lmdb = "==1.7.5"
+matplotlib = "==3.10.1"
+datasets = "==3.6.0"
+gymnasium = "==1.2.2"
+wandb = "==0.23.0"
+deepspeed = "==0.17.6"
+moviepy = "==1.0.3"
+opencv-contrib-python-headless = "==4.11.0.86"
+# Issue #21 — previously implicit transitives, now pinned explicitly.
+accelerate = ">=0.34"
+safetensors = ">=0.4.5"
+huggingface-hub = ">=0.26"
+Pillow = ">=10.0"
+requests = ">=2.32"
+PyYAML = ">=6.0"
+packaging = ">=24.0"
+websockets = ">=13.0"
+
+# flash-attn ignores ``TORCH_CUDA_ARCH_LIST`` and uses its own
+# ``FLASH_ATTN_CUDA_ARCHS`` (semicolon-separated, default
+# ``"80;90;100;120"``). On a single-GPU sm_120 host the other three
+# archs are pure waste — building only ``"120"`` cuts wall-clock
+# time roughly 4×. ``FLASH_ATTENTION_FORCE_BUILD=TRUE`` skips the
+# pre-built wheel lookup so the source build always runs.
+# ``MAX_JOBS`` is intentionally unset — ninja then defaults to
+# ``nproc``, which on a single-arch build (sm_120 only) cuts the
+# per-job memory footprint by ~4× vs. the 4-arch default and easily
+# fits in 188 GB RAM at full parallelism. ``CUDA_HOME`` points at
+# the env's cu128 toolchain so the build doesn't pick up a system
+# ``/usr/local/cuda-*`` that might mismatch torch's CUDA version.
+[feature.rldx.tasks.install-flash-attn]
+cmd = "pip install git+https://github.com/Dao-AILab/flash-attention.git@v2.8.3 --no-build-isolation"
+env = { FLASH_ATTN_CUDA_ARCHS = "120", FLASH_ATTENTION_FORCE_BUILD = "TRUE", CUDA_HOME = "$CONDA_PREFIX" }
+
+# ``postinstall`` is the single entry point after ``pixi install -e rldx``.
+# It chains ``install-flash-attn`` first (source build targeting sm_120) and
+# then editable-installs the rldx package against the pixi-managed torch.
+# No separate manual step is needed to get flash-attn.
+[feature.rldx.tasks.postinstall]
+depends-on = ["install-flash-attn"]
+cmd = "pip install -e . --no-deps"
+
+[feature.rldx.activation]
+env = { TORCH_CUDA_ARCH_LIST = "sm_120" }
+
+
+# ---------------------------------------------------------------------------
+# Inference-acceleration environment (CUDA 13.0 + torch 2.10.0+cu130).
+#
+# This env exists because ``rldx/inference/`` (paths A/B/C/D) generates
+# Inductor PTX/CUBIN targeting sm_120 (Blackwell) natively, which
+# requires the cu130 toolchain. The cu128 toolkit used by the ``rldx``
+# env above does not include sm_120 in its CUBIN target list, so a
+# shared environment would fail to compile the kernel chains.
+#
+# Use ``pixi run -e inference <cmd>`` to invoke; ``pixi install -e
+# inference`` will (1) pull cuda-toolkit=13.0 from the nvidia conda
+# channel, (2) install torch 2.10.0+cu130 from the PyTorch wheel index,
+# (3) source-build flash-attn 2.8.3 with TORCH_CUDA_ARCH_LIST=sm_120
+# against this env's torch + nvcc (≈10 minutes on first install).
+# ---------------------------------------------------------------------------
+
+[feature.inference.system-requirements]
+# Inductor cu130 binaries require a host driver supporting CUDA 13+.
+# Lock the inference env to that floor explicitly so install fails
+# loudly on older drivers instead of silently producing broken binaries.
+cuda = "13"
+
+[feature.inference.dependencies]
+cuda-toolkit = "13.0.*"
+
+[feature.inference.pypi-options]
+# cu130 wheels live on the dedicated PyTorch wheel index.
+extra-index-urls = ["https://download.pytorch.org/whl/cu130"]
+index-strategy = "unsafe-best-match"
+
+[feature.inference.pypi-dependencies]
+# Mirrors ``[feature.rldx.pypi-dependencies]`` with the torch family
+# bumped to the 2.10 / cu130 line. Non-torch deps are kept identical
+# so the same model / data / policy code paths run unchanged across
+# both envs — only the kernel-generation toolchain differs.
+torch = { version = "==2.10.0", index = "https://download.pytorch.org/whl/cu130" }
+torchvision = { version = "==0.25.0", index = "https://download.pytorch.org/whl/cu130" }
+torchcodec = "==0.7.0"
+transformers = "==4.57.0"
+peft = "==0.17.1"
+diffusers = "==0.35.1"
+einops = "==0.8.1"
+numpy = "==1.26.4"
+scipy = "==1.15.3"
+omegaconf = "==2.3.0"
+termcolor = "==3.2.0"
+albumentations = "==1.4.18"
+dm-tree = "==0.1.8"
+pyzmq = "==27.0.1"
+msgpack = "==1.1.0"
+msgpack-numpy = "==0.4.8"
+tyro = "==0.9.17"
+pandas = "==2.2.3"
+av = "==15.0.0"
+click = "==8.1.8"
+lmdb = "==1.7.5"
+matplotlib = "==3.10.1"
+datasets = "==3.6.0"
+gymnasium = "==1.2.2"
+wandb = "==0.23.0"
+deepspeed = "==0.17.6"
+moviepy = "==1.0.3"
+opencv-contrib-python-headless = "==4.11.0.86"
+accelerate = ">=0.34"
+safetensors = ">=0.4.5"
+huggingface-hub = ">=0.26"
+Pillow = ">=10.0"
+requests = ">=2.32"
+PyYAML = ">=6.0"
+packaging = ">=24.0"
+websockets = ">=13.0"
+# Triton ships with the matched torch wheel; pinning explicitly as a
+# guard against accidental override on transitive resolves.
+triton = ">=3.5.0"
+
+[feature.inference.tasks.install-flash-attn]
+# flash-attn 2.8.3 has no sm_120 wheel for cu130. Source-build against
+# this env's torch + nvcc 13.0. ``--no-build-isolation`` is required
+# so the build sees the env's torch (else PEP 517 isolation pulls the
+# default PyPI torch wheel and the resulting flash-attn links against
+# the wrong CUDA).
+#
+# Build env vars (matches Isaac-GR00T-AlinVLA's
+# ``scripts/setup_inference_env.sh``):
+#   * ``FLASH_ATTN_CUDA_ARCHS="120"`` — flash-attn's own arch selector
+#     (NOT ``TORCH_CUDA_ARCH_LIST``); default builds 4 archs
+#     (``"80;90;100;120"``) which is roughly 4× the wall-clock for an
+#     sm_120-only host.
+#   * ``FLASH_ATTENTION_FORCE_BUILD=TRUE`` — skip the pre-built wheel
+#     lookup; on cu130 + sm_120 there is no compatible wheel anyway,
+#     and a stale CXX11-ABI wheel would silently fail on import.
+#   * ``MAX_JOBS`` — intentionally unset; ninja falls back to
+#     ``nproc`` and runs at full host parallelism. Per-job memory is
+#     ~4× lower than the default 4-arch build (the original failure
+#     mode was 4 archs × MAX_JOBS=16 = 64 nvcc instances OOM-killing
+#     each other), so on a single-arch build full parallelism fits
+#     in 188 GB RAM with headroom.
+#   * ``CUDA_HOME=$CONDA_PREFIX`` — point the build at the env's
+#     cu130 toolchain (env nvcc + headers under
+#     ``.pixi/envs/inference``); without this the build picks up
+#     ``/usr/local/cuda-12.8`` from the system and fails with
+#     ``CUDA version (12.8) mismatches PyTorch (13.0)``.
+cmd = "pip install git+https://github.com/Dao-AILab/flash-attention.git@v2.8.3 --no-build-isolation"
+env = { FLASH_ATTN_CUDA_ARCHS = "120", FLASH_ATTENTION_FORCE_BUILD = "TRUE", CUDA_HOME = "$CONDA_PREFIX" }
+
+[feature.inference.tasks.postinstall]
+depends-on = ["install-flash-attn"]
+cmd = "pip install -e . --no-deps"
+
+[feature.inference.activation]
+env = { TORCH_CUDA_ARCH_LIST = "sm_120" }

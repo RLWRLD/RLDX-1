@@ -1,0 +1,180 @@
+#This is the single project pyproject.toml
+
+[build-system]
+requires = ["setuptools>=67", "wheel", "pip"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rldx"
+version = "0.1.0"
+description = "RLDX-1: Vision-Language-Action model for dexterous manipulation."
+readme = "README.md"
+requires-python = "==3.10.*"
+license = {text = "Apache-2.0"}
+authors = [{name = "RLWRLD AI", email = "engineering@rlwrld.ai"}]
+keywords = [
+    "vision-language-action",
+    "robotics",
+    "manipulation",
+    "imitation-learning",
+    "flow-matching",
+    "diffusion-policy",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Mirror the main repo's baseline dependencies so install behaves the same.
+dependencies = [
+    "albumentations==1.4.18",
+    "av==15.0.0",
+    "diffusers==0.35.1",
+    "dm-tree==0.1.8",
+    "lmdb==1.7.5",
+    "msgpack==1.1.0",
+    "msgpack-numpy==0.4.8",
+    "pandas==2.2.3",
+    "peft==0.17.1",
+    "termcolor==3.2.0",
+    "torch==2.7.0",
+    "torchvision==0.22.0",
+    "transformers==4.57.0",
+    "tyro==0.9.17",
+    # flash-attn is a required runtime dep on every CUDA install. CPU-only
+    # boxes that need to ``uv sync`` (lint, doc) must use
+    # ``uv sync --no-install-package flash-attn`` (the same flag CI uses).
+    # RTX 5090 / Blackwell (sm_120) builds use the pixi environment instead
+    # — see ``pixi.toml`` and ``docs/installation.md``.
+    "flash-attn==2.7.4.post1",
+    "click==8.1.8",
+    "datasets==3.6.0",
+    "einops==0.8.1",
+    "gymnasium==1.2.2",
+    "matplotlib==3.10.1",
+    "numpy==1.26.4",
+    "omegaconf==2.3.0",
+    "scipy==1.15.3",
+    "torchcodec==0.4.0",
+    "wandb==0.23.0",
+    "pyzmq==27.0.1",
+    "deepspeed==0.17.6",
+    "moviepy==1.0.3",
+    "opencv-contrib-python-headless==4.11.0.86",
+    # Issue #21 — previously implicit via transformers transitive install;
+    # pin explicitly so a transformers upgrade cannot silently drop them.
+    "accelerate>=0.34",
+    "safetensors>=0.4.5",
+    "huggingface-hub>=0.26",
+    "Pillow>=10.0",
+    "tqdm>=4.66",
+    "requests>=2.32",
+    "PyYAML>=6.0",
+    "packaging>=24.0",
+    # Imported by ``rldx.eval.serving.websocket_policy_server`` (loaded via
+    # ``run_rldx_server_pi.py``); not a transitive of anything else.
+    "websockets>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "ipython",
+    "pytest>=8.0",
+    "pytest-timeout>=2.3",
+    "hypothesis>=6.0",
+    "hypothesis-torch>=0.8",
+]
+# Evaluation-specific clients. Not needed for ``import rldx`` or training.
+# Install with ``uv sync --extra eval``. ``lerobot`` is intentionally NOT
+# listed — lerobot 0.4.x requires ``wandb>=0.24`` and lerobot 0.5+ requires
+# Python 3.12, both of which clash with the pinned core deps. Install
+# manually after ``uv sync`` if you need the SO100 / LeRobot data path:
+# ``uv pip install --no-deps lerobot``.
+eval = [
+    "imageio>=2.34",
+    "draccus>=0.8",
+    "transforms3d>=0.4",
+    "openpi-client>=0.1",
+]
+tensorrt = [
+    "onnx>=1.20.0",
+    "tensorrt>=10.14.1.48.post1",
+]
+
+[project.urls]
+Homepage = "https://github.com/RLWRLD/RLDX"
+Repository = "https://github.com/RLWRLD/RLDX"
+Issues = "https://github.com/RLWRLD/RLDX/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["rldx*"]
+
+[tool.uv.extra-build-dependencies]
+flash-attn = ["torch==2.7.0", "numpy==1.26.4"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "gpu: requires CUDA GPU (skipped in CPU-only CI)",
+    "slow: long-running tests (skipped in quick sweeps)",
+    "integration: multi-process / multi-venv end-to-end test",
+    "hf_internal: depends on private HF repos (env-gated: RLDX_INTERNAL_HF=1)",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:pkg_resources",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["rldx"]
+exclude = [
+    "__pycache__",
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".vscode",
+    ".venv",
+    "dist",
+    "logs",
+    "*.ipynb",
+    "external_dependencies",
+    "symlinks",
+    "run_scripts",
+    "ckpt",
+    "output",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+# Triton kernels follow upstream tutorial / FlashAttention paper naming
+# (``O`` for output buffer, ``l`` for log-sum-exp accumulator) and the
+# ``grid = lambda meta: (...)`` form is the documented Triton API for
+# launch-grid specs.  Suppress the style rules that fight those
+# conventions inside the inference Triton kernels.
+"rldx/inference/**/kernels/*.py" = ["E741", "E731"]
+
+[tool.ruff.lint.isort]
+case-sensitive = false
+combine-as-imports = true
+force-sort-within-sections = true
+force-wrap-aliases = false
+split-on-trailing-comma = false
+lines-after-imports = 2
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]

@@ -1,0 +1,21 @@
+# Mirrors the lint job in .github/workflows/ci.yml so local commits are
+# blocked on the same ruff rules CI enforces. Install locally with:
+#
+#     uv tool install pre-commit
+#     pre-commit install
+#
+# Run against the full tree ad-hoc with:
+#
+#     pre-commit run --all-files
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.10
+    hooks:
+      - id: ruff
+        name: ruff check (rldx/)
+        args: [rldx/]
+        pass_filenames: false
+      - id: ruff-format
+        name: ruff format --check (rldx/)
+        args: [--check, rldx/]
+        pass_filenames: false
