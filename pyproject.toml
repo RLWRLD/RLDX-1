@@ -44,7 +44,7 @@ dependencies = [
     "torch==2.7.0",
     "torchvision==0.22.0",
     "transformers==4.57.0",
-    "tyro==0.9.17",
+    "tyro==1.0.13",
     # flash-attn is a required runtime dep on every CUDA install. CPU-only
     # boxes that need to ``uv sync`` (lint, doc) must use
     # ``uv sync --no-install-package flash-attn`` (the same flag CI uses).
