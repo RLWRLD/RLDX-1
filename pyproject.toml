@@ -50,7 +50,7 @@ dependencies = [
     # ``uv sync --no-install-package flash-attn`` (the same flag CI uses).
     # RTX 5090 / Blackwell (sm_120) builds use the pixi environment instead
     # — see ``pixi.toml`` and ``docs/installation.md``.
-    "flash-attn==2.7.4.post1",
+    "flash-attn==2.8.3",
     "click==8.1.8",
     "datasets==3.6.0",
     "einops==0.8.1",
