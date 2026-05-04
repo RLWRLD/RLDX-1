@@ -35,7 +35,7 @@ dependencies = [
     "av==15.0.0",
     "diffusers==0.35.1",
     "dm-tree==0.1.8",
-    "lmdb==1.7.5",
+    "lmdb==2.2.0",
     "msgpack==1.1.0",
     "msgpack-numpy==0.4.8",
     "pandas==2.2.3",
