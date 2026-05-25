@@ -18,6 +18,7 @@
 
 import copy
 import importlib
+import json
 from pathlib import Path
 import shutil
 import sys
@@ -90,15 +91,52 @@ def compare_model_configs(ckpt_snapshot: dict, final_cfg) -> dict:
     return diffs
 
 
-def resolve_backbone_path(cli_backbone_path, ckpt_config, ckpt_model_snapshot):
-    """Resolve backbone path from CLI or checkpoint snapshot."""
+def resolve_backbone_path(cli_backbone_path, base_model_path, ckpt_model_snapshot):
+    """Resolve backbone path from CLI, checkpoint snapshot, or HF ``config.json``.
+
+    Resolution order:
+      1. ``--backbone-path`` (explicit CLI override).
+      2. ``experiment_cfg/config.yaml`` snapshot's ``model_name`` (yaml-shipped checkpoints).
+      3. ``<base_model_path>/config.json``'s ``model_name`` (HF-style checkpoints that
+         only ship a PretrainedConfig — e.g. ``RLWRLD/RLDX-1-PT``). Logs a warning
+         so the fallback is never silent.
+      4. ``Qwen/Qwen3-VL-8B-Instruct`` default — only when ``base_model_path is None``
+         (i.e. genuine from-scratch). Resolving from a *checkpoint* whose backbone
+         we cannot identify raises instead of silently re-initialising the input
+         embedding / lm_head against vanilla Qwen.
+    """
     if cli_backbone_path is not None:
         _print(f"Using backbone path from CLI: {cli_backbone_path}")
         return cli_backbone_path
     if ckpt_model_snapshot is not None:
-        path = ckpt_model_snapshot.get("model_name", "Qwen/Qwen3-VL-8B-Instruct")
-        _print(f"[i] Backbone path not specified via CLI. Using checkpoint value: {path}")
-        return path
+        snap_name = ckpt_model_snapshot.get("model_name")
+        if snap_name:
+            _print(f"[i] Backbone path not specified via CLI. Using checkpoint value: {snap_name}")
+            return snap_name
+    if base_model_path is not None:
+        cfg_json = Path(base_model_path) / "config.json"
+        if cfg_json.exists():
+            try:
+                cfg_name = json.loads(cfg_json.read_text()).get("model_name")
+            except json.JSONDecodeError:
+                cfg_name = None
+            if cfg_name:
+                _print(
+                    colored(
+                        f"[i] experiment_cfg/config.yaml not present at {base_model_path}; "
+                        f"using model_name from config.json: {cfg_name}",
+                        "yellow",
+                    )
+                )
+                return cfg_name
+        raise RuntimeError(
+            f"Cannot resolve backbone for checkpoint at {base_model_path}. "
+            "Pass --backbone-path explicitly, or ensure the checkpoint ships "
+            "either experiment_cfg/config.yaml or a config.json with model_name. "
+            "Refusing to silently fall back to vanilla Qwen/Qwen3-VL-8B-Instruct, "
+            "which would re-initialise the input embedding and lm_head against "
+            "the wrong vocabulary."
+        )
     path = "Qwen/Qwen3-VL-8B-Instruct"
     _print(f"\n[i] Using default backbone path: {path}")
     return path

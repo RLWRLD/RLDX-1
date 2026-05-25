@@ -126,11 +126,10 @@ class AssemblyInputs:
 def _apply_cli_model_overrides(
     cli: TrainConfig,
     run_config: Config,
+    base_model_path: Optional[str],
     loaded_ckpt_model_snapshot: Optional[dict],
 ) -> None:
     """Replicate launch_train.py L177-204."""
-    ckpt_config: dict = {}
-
     run_config.model.model_type = "RLDX-1"
     run_config.model.tune_llm = cli.tune_llm
     run_config.model.tune_visual = cli.tune_visual
@@ -184,7 +183,7 @@ def _apply_cli_model_overrides(
     run_config.model.conversation_image_first = cli.conversation_image_first
 
     run_config.model.model_name = resolve_backbone_path(
-        cli.backbone_path, ckpt_config, loaded_ckpt_model_snapshot
+        cli.backbone_path, base_model_path, loaded_ckpt_model_snapshot
     )
     # backbone_model_type is fixed to "vtc_qwen3_vl" at RLDXConfig default.
     # The CLI does not expose --backbone-model-type and checkpoint values
@@ -395,7 +394,12 @@ def assemble_run_config(inputs: AssemblyInputs) -> Config:
     _print("\n1. Overwriting with CLI 'model' configs...")
     run_config = _load_base_config(inputs)
     _validate_features_match_ckpt(inputs.cli, inputs.loaded_yaml_config)
-    _apply_cli_model_overrides(inputs.cli, run_config, inputs.loaded_ckpt_model_snapshot)
+    _apply_cli_model_overrides(
+        inputs.cli,
+        run_config,
+        inputs.base_model_path,
+        inputs.loaded_ckpt_model_snapshot,
+    )
 
     ctx = AssemblyContext(cli=inputs.cli, run_config=run_config)
     active = tuple(F for F in FEATURES if F.is_active(inputs.cli))
