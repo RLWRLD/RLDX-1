@@ -50,7 +50,7 @@ dependencies = [
     # RTX 5090 / Blackwell (sm_120) builds use the pixi environment instead
     # — see ``pixi.toml`` and ``docs/installation.md``.
     "flash-attn==2.7.4.post1",
-    "click==8.1.8",
+    "click==8.4.2",
     "datasets==3.6.0",
     "einops==0.8.1",
     "gymnasium==1.2.2",
