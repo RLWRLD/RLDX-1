@@ -40,8 +40,8 @@ dependencies = [
     "pandas==2.2.3",
     "peft==0.17.1",
     "termcolor==3.2.0",
-    "torch==2.7.0",
-    "torchvision==0.22.0",
+    "torch==2.13.0",
+    "torchvision==0.28.0",
     "transformers==4.57.0",
     "tyro==0.9.17",
     # flash-attn is a required runtime dep on every CUDA install. CPU-only
@@ -58,7 +58,7 @@ dependencies = [
     "numpy==1.26.4",
     "omegaconf==2.3.0",
     "scipy==1.15.3",
-    "torchcodec==0.4.0",
+    "torchcodec==0.15.0",
     "wandb==0.23.0",
     "pyzmq==27.0.1",
     "deepspeed==0.17.6",
@@ -118,7 +118,7 @@ where = ["."]
 include = ["rldx*"]
 
 [tool.uv.extra-build-dependencies]
-flash-attn = ["torch==2.7.0", "numpy==1.26.4"]
+flash-attn = ["torch==2.13.0", "numpy==1.26.4"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
