@@ -1,10 +1,9 @@
 """RLDX — RLWRLD RLDX-1 Vision-Language-Action model.
 
-Importing the package registers RLDX-1 with HuggingFace's ``AutoConfig``
-/ ``AutoModel`` / ``AutoProcessor`` registries, so the standard HF
-loading pattern works out of the box::
+Importing ``rldx.model`` registers RLDX-1 with HuggingFace's ``AutoConfig``
+/ ``AutoModel`` / ``AutoProcessor`` registries::
 
-    import rldx
+    import rldx.model
     from transformers import AutoConfig
 
     cfg = AutoConfig.from_pretrained("RLWRLD/RLDX-1-PT")
@@ -12,6 +11,9 @@ loading pattern works out of the box::
 The public symbols are also exposed as lazy attributes (``rldx.RLDX``,
 ``rldx.RLDXConfig``, ``rldx.RLDXProcessor``, ...) so that callers can
 reach the underlying classes without sub-module knowledge.
+
+Keep package initialization model-free: importing a policy client in a
+simulation process must not require the training/model dependency stack.
 """
 
 from importlib import import_module
@@ -57,10 +59,3 @@ if TYPE_CHECKING:
     from rldx.model.core.rldx import RLDX
     from rldx.model.core.setup import RLDXPipeline
     from rldx.policy.rldx_policy import RLDXPolicy
-
-
-# Trigger HuggingFace auto-mapping registration for RLDX-1 on package
-# import. ``rldx.model.core.rldx`` runs ``AutoConfig.register("RLDX-1", ...)``
-# and ``AutoModel.register(...)``; ``rldx.model.core.processing_rldx`` runs
-# ``AutoProcessor.register(...)``.
-from rldx.model.core import processing_rldx as _processing_rldx, rldx as _rldx  # noqa: E402, F401
