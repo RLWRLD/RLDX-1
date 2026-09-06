@@ -31,8 +31,9 @@ pixi run --environment rldx postinstall
 pixi run --environment rldx python -c "import rldx; print(rldx.__version__)"
 ```
 
-If `import rldx` prints the installed rldx version (no import error) you are done for training and inference
-against pre-trained checkpoints. Simulator eval stacks install separately
+Printing the version only checks package discovery; it does not load model
+dependencies. Run the model registry check below to verify the model installation.
+Simulator eval stacks install separately
 (see [Simulator environments](#simulator-environments)).
 
 ## Prerequisites
@@ -87,11 +88,56 @@ uv run python -c "import rldx; print(rldx.__version__)"
 
 # HuggingFace registry smoke test — should print "<class 'rldx.model.core.processing_rldx.RLDXProcessor'>"
 uv run python -c "
-import rldx
+import rldx.model
 from transformers.models.auto.processing_auto import PROCESSOR_MAPPING
 print(PROCESSOR_MAPPING._extra_content[rldx.RLDXConfig])
 "
 ```
+
+### Model-free simulator client
+
+The native ZMQ client can be used from a simulator runtime without installing
+the full model stack. Keep the model server in the Python 3.10 environment
+above. This source-based client path has been tested with Isaac's Python 3.12;
+it does **not** make the full distribution compatible with Python 3.12.
+
+Clone this repository and check out a reviewed, pinned commit containing the
+model-free package initialization change. Until that change is merged, stock
+`main` is not sufficient. Do not replace an existing model checkout.
+
+```bash
+git clone https://github.com/RLWRLD/RLDX-1.git RLDX-1-client
+cd RLDX-1-client
+git checkout --detach <reviewed-client-commit>
+# Set this to the Python launcher supplied by your simulator.
+SIM_PYTHON=/path/to/simulator/python.sh
+"$SIM_PYTHON" -c 'import numpy, torch, msgpack, zmq'
+RLDX_CLIENT_SRC="$(pwd)"
+PYTHONPATH="$RLDX_CLIENT_SRC${PYTHONPATH:+:$PYTHONPATH}" "$SIM_PYTHON" -c \
+  'from rldx.policy.server_client import PolicyClient; print(PolicyClient.__module__)'
+```
+
+Use that same command-scoped `PYTHONPATH` when launching your simulator's
+policy runner. It exposes the pinned native source; it does not patch imports,
+copy the transport, or change global shell settings. The client still needs
+NumPy, PyTorch, msgpack and pyzmq. Use the simulator's existing compatible
+packages; do not install the full RLDX dependency stack over its PyTorch/CUDA
+runtime. If dependencies are missing, provision them in an isolated runtime
+and repeat the import and native round-trip tests before deployment.
+
+`pip install --no-deps -e .` is not a workaround for `requires-python`:
+the full package still declares Python 3.10. A separately installable client
+wheel is not supplied by this change.
+
+### Import compatibility
+
+`import rldx` now only discovers the package and its lazy public symbols.
+Code that relied on this import alone registering Hugging Face Auto classes
+must explicitly use `import rldx.model` before `AutoConfig`, `AutoModel` or
+`AutoProcessor` loading. Accessing model symbols still requires the full model
+environment. Native server entrypoints import their model implementations;
+the wire protocol and inference math are unchanged. Validate custom HF loaders
+and the full model/server environment before adopting this change there.
 
 ## RTX 5090 / Blackwell (SM_120)
 
