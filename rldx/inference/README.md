@@ -139,22 +139,26 @@ if meta.get("memory_module") is not None:
         memory_module=meta["memory_module"],
         memory_length=meta["memory_config"]["memory_length"],
         memory_n_cog_tokens=meta["memory_config"]["memory_n_cog_tokens"],
-        device=device, dtype=torch.bfloat16,
+        device=device,
+        dtype=torch.bfloat16,
     )
 
 # Action Model
 gs_action_model = GraphSafeActionModel(
     action_head=action_head,
-    n_vl=n_vl, n_sa_pure=N_sa,
-    action_horizon=16, action_dim=64,
+    n_vl=n_vl,
+    n_sa_pure=N_sa,
+    action_horizon=16,
+    action_dim=64,
     num_inference_timesteps=4,
-    device=device, dtype=torch.bfloat16,
+    device=device,
+    dtype=torch.bfloat16,
 )
 
 # VLA (unified)
-gs_vla = GraphSafeVLA(gs_backbone, gs_action_model,
-                       gs_memory=gs_memory,
-                       memory_config=meta.get("memory_config"))
+gs_vla = GraphSafeVLA(
+    gs_backbone, gs_action_model, gs_memory=gs_memory, memory_config=meta.get("memory_config")
+)
 ```
 
 ### 3. Apply Optimization Path
@@ -188,7 +192,8 @@ vla_chain = build_custom_vla_chain(gs_vla, device, dtype=torch.bfloat16)
 # Compile
 sample_inputs = (pixel_values, state, embodiment_id, init_noise)
 compiled_vla, compile_time = compile_custom_vla_chain(
-    vla_chain, sample_inputs, compile_mode="max-autotune")
+    vla_chain, sample_inputs, compile_mode="max-autotune"
+)
 
 with torch.no_grad():
     action = compiled_vla(pixel_values, state, embodiment_id, init_noise=init_noise)
