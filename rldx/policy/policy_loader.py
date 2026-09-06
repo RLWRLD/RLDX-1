@@ -162,6 +162,8 @@ def _load_model(
     deactivate_memory: bool,
 ) -> Any:
     """Load model + optionally disable memory inference; return in eval mode."""
+    import rldx.model  # noqa: F401
+
     config = AutoConfig.from_pretrained(model_dir, trust_remote_code=True)
 
     if getattr(config, "use_memory", False) and deactivate_memory:
@@ -190,6 +192,8 @@ def _apply_model_tweaks(
 
 def _load_processor(model_dir: Path, model: Any) -> BaseProcessor:
     """Load processor (subdir-aware) + inject physics config + image-first flag."""
+    import rldx.model  # noqa: F401
+
     _processor_subdir = model_dir / "processor"
     _processor_path = _processor_subdir if _processor_subdir.exists() else model_dir
     processor: BaseProcessor = AutoProcessor.from_pretrained(_processor_path)

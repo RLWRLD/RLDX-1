@@ -43,6 +43,9 @@ def generate_synthetic_input(
     from PIL import Image
     from transformers import AutoProcessor
 
+    # This helper may be called before any model loader has registered RLDX.
+    import rldx.model  # noqa: F401
+
     torch.manual_seed(seed)
     processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
     # ``RLDXProcessor`` wraps an inner Qwen3-VL processor on

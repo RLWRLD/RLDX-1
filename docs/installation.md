@@ -303,10 +303,10 @@ initial pull online, or pre-download the checkpoint to
 
 ### `Could not find the Transformers classes you have set` at processor load
 
-The HuggingFace `AutoProcessor` registry is populated as a side effect
-of `import rldx`. If you import inner modules directly without touching
-`rldx` first, the class is not registered. The fix is always a one-line
-`import rldx` before any `AutoProcessor.from_pretrained(...)` call.
+The RLDX Hugging Face `AutoProcessor` registry is populated by explicitly
+importing `rldx.model` in the model environment. Package-only `import rldx`
+intentionally leaves the model stack unloaded. Custom HF loading code should
+use `import rldx.model` before `AutoProcessor.from_pretrained(...)`.
 
 ## Where to next
 
